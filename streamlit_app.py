@@ -16,21 +16,13 @@ def calculate_similarity(original_file_path, cloned_file_path):
 
 # Function to clone audio
 def clone_audio(input_file_path):
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        audio, sr = librosa.load(input_file_path)
-        audio *= 32767 / np.max(np.abs(audio))  # Normalize audio
-        audio = audio.astype(np.int16)
-        output_file_path = os.path.join(tmp_dir, 'cloned_output.wav')
-        sf.write(output_file_path, audio, sr)
-        
-        # Retry mechanism to ensure the file is created
-        for attempt in range(5):
-            if os.path.exists(output_file_path):
-                return output_file_path
-            else:
-                time.sleep(1)  # Wait a second before retrying
-        
-        raise FileNotFoundError(f"Cloned audio file not found after retries: {output_file_path}")
+    # Create a persistent temporary file path for the cloned output
+    cloned_output_path = tempfile.NamedTemporaryFile(suffix='.wav', delete=False).name
+    audio, sr = librosa.load(input_file_path)
+    audio *= 32767 / np.max(np.abs(audio))  # Normalize audio
+    audio = audio.astype(np.int16)
+    sf.write(cloned_output_path, audio, sr)
+    return cloned_output_path
 
 # Function to convert audio format
 def convert_audio(input_file):
@@ -38,9 +30,10 @@ def convert_audio(input_file):
         tmp_file.write(input_file.getbuffer())
         audio = AudioSegment.from_mp3(tmp_file.name)
         
-        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_wav:
-            audio.export(tmp_wav.name, format="wav")
-            return tmp_wav.name
+        # Save the converted audio to a persistent temporary WAV file
+        converted_file_path = tempfile.NamedTemporaryFile(suffix='.wav', delete=False).name
+        audio.export(converted_file_path, format="wav")
+        return converted_file_path
 
 # Streamlit application
 st.title("Audio Cloner")
@@ -73,3 +66,9 @@ if input_file:
 
     except Exception as e:
         st.error(f"Error occurred: {str(e)}")
+    finally:
+        # Cleanup: remove temporary files
+        if 'input_file_path' in locals() and os.path.exists(input_file_path):
+            os.remove(input_file_path)
+        if 'cloned_file_path' in locals() and os.path.exists(cloned_file_path):
+            os.remove(cloned_file_path)
