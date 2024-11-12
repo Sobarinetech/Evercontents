@@ -3,12 +3,11 @@ import random
 import os
 from moviepy.editor import *
 from moviepy.video.fx.all import fadein, fadeout, speedx
-import fitz  # PyMuPDF
+import fitz # PyMuPDF
 from gtts import gTTS
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import emoji
 import google.generativeai as genai
-import textwrap
 
 # Constants
 CHARACTER_LIMIT = 2000
@@ -195,45 +194,128 @@ if st.checkbox("Create an image collage"):
     st.image(collage_path, caption='Generated Collage', use_column_width=True)
 
 # Dynamic speed control
-dynamic_speed = st.checkbox("Apply dynamic speed to segments")
+dynamic_speed = st.checkbox("Add dynamic speed to video segments")
 speed_segments = []
 if dynamic_speed:
-    start = st.number_input("Enter start time (seconds)", min_value=0, max_value=10)
-    end = st.number_input("Enter end time (seconds)", min_value=0, max_value=10)
-    speed = st.number_input("Enter speed factor", min_value=1.0, max_value=2.0)
-    speed_segments.append((start, end, speed))
+    segment_count = st.number_input("How many speed segments?", min_value=1, max_value=5, value=1)
+    for i in range(segment_count):
+        start_time = st.number_input(f"Start time for segment {i+1} (seconds)", value=0)
+        end_time = st.number_input(f"End time for segment {i+1} (seconds)", value=5)
+        speed = st.number_input(f"Speed for segment {i+1} (e.g., 1.0 for normal, 2.0 for double speed)", value=1.0)
+        speed_segments.append((start_time, end_time, speed))
 
-# Final video creation
-if st.button("Create Your Video"):
-    if pdf_file:
-        # Extract text from PDF and generate audio
-        text = pdf_to_text(pdf_file)
-        audio_path = create_audio_from_text(text, lang=language_option)
+# Initialize paths
+audio_path = None
+watermark_path = None
+bg_path = None
+temp_dir = "temp"
+thumbnail_paths = []
+effect_paths = []
 
-        # Generate video
-        video = create_video_with_transitions(thumbnails, audio_path, [5] * len(thumbnails), text_overlays)
+# Generate Video Button
+if (pdf_file or text_input) and thumbnails:
+    if st.button("Generate Video!"):
+        try:
+            # Read PDF text or use input text
+            pdf_text = pdf_to_text(pdf_file) if pdf_file else ""
+            input_text = pdf_text if pdf_text else text_input
+            if not input_text:
+                st.error("Please provide content to generate audio.")
+                st.stop()
 
-        # Add background effect if available
-        if background_image:
-            video = add_background_effects(video, background_image)
+            # Create audio from the text
+            audio_path = create_audio_from_text(input_text, lang=language_option)
+            audio_clip = AudioFileClip(audio_path)
 
-        # Apply speed and filter effects if selected
-        if dynamic_speed:
-            video = add_dynamic_speed(video, speed_segments)
-        if filter_option != "None":
-            video = video.fx(apply_filter, filter_option)
+            # Check audio duration
+            audio_duration = audio_clip.duration
+            if audio_duration == 0:
+                st.error("The generated audio file is empty. Please check the input text.")
+                st.stop()
 
-        # Apply watermark if uploaded
-        if watermark_image:
-            watermark = ImageClip(watermark_image).set_duration(video.duration).set_position(('right', 'bottom'))
-            video = CompositeVideoClip([video, watermark])
+            os.makedirs(temp_dir, exist_ok=True)
+            durations = [5] * len(thumbnails)
 
-        # Save video
-        final_video_path = "output_video.mp4"
-        video.write_videofile(final_video_path)
+            for thumbnail in thumbnails:
+                thumbnail_path = os.path.join(temp_dir, thumbnail.name)
+                with open(thumbnail_path, "wb") as f:
+                    f.write(thumbnail.getbuffer())
 
-        # Provide shareable video link
-        st.video(final_video_path)
-        share_video_on_socials(final_video_path)
+                # Apply selected filter
+                if filter_option != "None":
+                    img = Image.open(thumbnail_path)
+                    img = apply_filter(img, filter_option)
+                    img.save(thumbnail_path)
 
-        st.success("Your video has been successfully created! 🎉")
+                if apply_shapes:
+                    img_with_shapes = overlay_random_shapes(img)
+                    img_with_shapes_path = os.path.join(temp_dir, "shaped_" + thumbnail.name)
+                    img_with_shapes.save(img_with_shapes_path)
+                    thumbnail_paths.append(img_with_shapes_path)
+                else:
+                    thumbnail_paths.append(thumbnail_path)
+
+            # Create video with transitions
+            video = create_video_with_transitions(thumbnail_paths, audio_path, durations, text_overlays)
+
+            # Trim video if it exceeds audio duration
+            if video.duration > audio_duration:
+                video = video.subclip(0, audio_duration)
+
+            # Adjust dynamic speed if selected
+            if dynamic_speed:
+                video = add_dynamic_speed(video, speed_segments)
+
+            # Add background effects if provided
+            if background_image:
+                bg_path = os.path.join(temp_dir, "background_image.jpg")
+                with open(bg_path, "wb") as f:
+                    f.write(background_image.getbuffer())
+                video = add_background_effects(video, bg_path)
+
+            # Add watermark if provided
+            if watermark_image:
+                watermark_path = os.path.join(temp_dir, "watermark.png")
+                with open(watermark_path, "wb") as f:
+                    f.write(watermark_image.getbuffer())
+                video = CompositeVideoClip([video, ImageClip(watermark_path).set_duration(video.duration).set_position(("right", "bottom")).set_opacity(0.5)])
+
+            # Add sound effects if provided
+            if sound_effects:
+                for effect in sound_effects:
+                    effect_path = os.path.join(temp_dir, effect.name)
+                    with open(effect_path, "wb") as f:
+                        f.write(effect.getbuffer())
+                    effect_paths.append(effect_path)
+                # Mix sound effects
+                mixed_audio = mix_audio_tracks(effect_paths)
+                video = video.set_audio(mixed_audio)
+
+            # Save video
+            video_path = "output_video.mp4"
+            video.write_videofile(video_path, fps=24)
+
+            st.success("Video generated successfully!")
+            st.video(video_path)
+            share_video_on_socials(video_path)
+
+        except Exception as e:
+            st.error(f"An error occurred while generating the video: {e}")
+
+        finally:
+            # Cleanup
+            if audio_path and os.path.exists(audio_path):
+                os.remove(audio_path)
+            for path in thumbnail_paths:
+                if os.path.exists(path):
+                    os.remove(path)
+            if watermark_path and os.path.exists(watermark_path):
+                os.remove(watermark_path)
+            if bg_path and os.path.exists(bg_path):
+                os.remove(bg_path)
+            for effect in effect_paths:
+                if os.path.exists(effect):
+                    os.remove(effect)
+
+    else:
+        st.warning("Please upload a PDF or paste content, and add thumbnail images to proceed.")
