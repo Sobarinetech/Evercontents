@@ -5,7 +5,6 @@ import numpy as np
 import tempfile
 import os
 from pydub import AudioSegment
-import moviepy.editor as mp
 
 # Function to calculate similarity
 def calculate_similarity(original_file_path, cloned_file_path):
@@ -23,16 +22,25 @@ def clone_audio(input_file_path):
         audio = audio.astype(np.int16)
         output_file_path = os.path.join(tmp_dir, 'cloned_output.wav')
         sf.write(output_file_path, audio, sr)
-        return output_file_path
+        
+        # Retry mechanism to ensure the file is created
+        for attempt in range(5):
+            if os.path.exists(output_file_path):
+                return output_file_path
+            else:
+                time.sleep(1)  # Wait a second before retrying
+        
+        raise FileNotFoundError(f"Cloned audio file not found after retries: {output_file_path}")
 
 # Function to convert audio format
 def convert_audio(input_file):
     with tempfile.NamedTemporaryFile(suffix='.mp3') as tmp_file:
         tmp_file.write(input_file.getbuffer())
         audio = AudioSegment.from_mp3(tmp_file.name)
-        converted_file_path = "converted_audio.wav"
-        audio.export(converted_file_path, format="wav")
-        return converted_file_path
+        
+        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_wav:
+            audio.export(tmp_wav.name, format="wav")
+            return tmp_wav.name
 
 # Streamlit application
 st.title("Audio Cloner")
@@ -44,10 +52,9 @@ if input_file:
     try:
         # Convert uploaded audio to WAV format if needed
         if input_file.type == 'audio/mpeg':
-            converted_file_path = convert_audio(input_file)
-            input_file_path = converted_file_path
+            input_file_path = convert_audio(input_file)
         else:
-            with tempfile.NamedTemporaryFile(suffix='.wav') as tmp_file:
+            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_file:
                 tmp_file.write(input_file.getbuffer())
                 input_file_path = tmp_file.name
 
