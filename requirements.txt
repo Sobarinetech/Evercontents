@@ -1,9 +1,6 @@
-streamlit
-moviepy 
-fitz 
-gtts 
-pillow 
-emoji 
-pydub
-frontend
-librosa
+Streamlit
+Librosa
+SoundFile
+NumPy
+PyDub
+FFmpeg 
