@@ -5,3 +5,4 @@ gtts
 pillow 
 emoji 
 google-generativeai
+frontend
