@@ -5,6 +5,8 @@ import numpy as np
 import tempfile
 import os
 from pydub import AudioSegment
+import pyaudio
+import moviepy.editor as mp
 
 # Function to calculate similarity
 def calculate_similarity(original_file_path, cloned_file_path):
@@ -64,3 +66,24 @@ if input_file:
             st.download_button("Download Cloned Audio", data=file, file_name='cloned_audio.wav')
     except Exception as e:
         st.error(f"Error occurred: {str(e)}")
+
+
+# PyAudio test
+def test_pyaudio():
+    audio = pyaudio.PyAudio()
+    stream = audio.open(format=pyaudio.paInt16, channels=1, rate=44100, input=True)
+    return stream
+
+# MoviePy test
+def test_moviepy():
+    audio = mp.AudioFileClip('audio_file.wav')
+    return audio
+
+# Librosa test
+def test_librosa():
+    audio, sr = librosa.load('audio_file.wav')
+    return audio
+
+st.button("Test PyAudio", on_click=test_pyaudio)
+st.button("Test MoviePy", on_click=test_moviepy)
+st.button("Test Librosa", on_click=test_librosa)
