@@ -7,6 +7,15 @@ import os
 from pydub import AudioSegment
 import pyaudio
 import moviepy.editor as mp
+import subprocess
+import sys
+
+# Install pyaudio if not installed
+try:
+    import pyaudio
+except ImportError:
+    subprocess.check_call([f"{sys.executable}", "-m", "pip", "install", "pyaudio"])
+    import pyaudio
 
 # Function to calculate similarity
 def calculate_similarity(original_file_path, cloned_file_path):
@@ -66,7 +75,6 @@ if input_file:
             st.download_button("Download Cloned Audio", data=file, file_name='cloned_audio.wav')
     except Exception as e:
         st.error(f"Error occurred: {str(e)}")
-
 
 # PyAudio test
 def test_pyaudio():
