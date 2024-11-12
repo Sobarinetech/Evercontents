@@ -5,17 +5,7 @@ import numpy as np
 import tempfile
 import os
 from pydub import AudioSegment
-import pyaudio
 import moviepy.editor as mp
-import subprocess
-import sys
-
-# Install pyaudio if not installed
-try:
-    import pyaudio
-except ImportError:
-    subprocess.check_call([f"{sys.executable}", "-m", "pip", "install", "pyaudio"])
-    import pyaudio
 
 # Function to calculate similarity
 def calculate_similarity(original_file_path, cloned_file_path):
@@ -29,7 +19,7 @@ def calculate_similarity(original_file_path, cloned_file_path):
 def clone_audio(input_file_path):
     with tempfile.TemporaryDirectory() as tmp_dir:
         audio, sr = librosa.load(input_file_path)
-        audio *= 32767 / np.max(np.abs(audio))
+        audio *= 32767 / np.max(np.abs(audio))  # Normalize audio
         audio = audio.astype(np.int16)
         output_file_path = os.path.join(tmp_dir, 'cloned_output.wav')
         sf.write(output_file_path, audio, sr)
@@ -52,7 +42,7 @@ input_file = st.file_uploader("Upload Audio File", type=['wav', 'mp3', 'ogg'])
 
 if input_file:
     try:
-        # Convert uploaded audio to WAV format
+        # Convert uploaded audio to WAV format if needed
         if input_file.type == 'audio/mpeg':
             converted_file_path = convert_audio(input_file)
             input_file_path = converted_file_path
@@ -73,25 +63,6 @@ if input_file:
         # Display download button
         with open(cloned_file_path, 'rb') as file:
             st.download_button("Download Cloned Audio", data=file, file_name='cloned_audio.wav')
+
     except Exception as e:
         st.error(f"Error occurred: {str(e)}")
-
-# PyAudio test
-def test_pyaudio():
-    audio = pyaudio.PyAudio()
-    stream = audio.open(format=pyaudio.paInt16, channels=1, rate=44100, input=True)
-    return stream
-
-# MoviePy test
-def test_moviepy():
-    audio = mp.AudioFileClip('audio_file.wav')
-    return audio
-
-# Librosa test
-def test_librosa():
-    audio, sr = librosa.load('audio_file.wav')
-    return audio
-
-st.button("Test PyAudio", on_click=test_pyaudio)
-st.button("Test MoviePy", on_click=test_moviepy)
-st.button("Test Librosa", on_click=test_librosa)
