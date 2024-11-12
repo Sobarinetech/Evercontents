@@ -1,6 +1,7 @@
 streamlit
 moviepy 
-fitz gtts 
+fitz 
+gtts 
 pillow 
 emoji 
 google-generativeai
