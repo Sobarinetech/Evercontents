@@ -13,6 +13,10 @@ import textwrap
 # Ensure the static directory exists
 if not os.path.exists('static'):
     os.makedirs('static')
+import os
+static_dir = os.path.join(os.path.dirname(__file__), 'static')
+if not os.path.exists(static_dir):
+    raise RuntimeError(f"Directory '{static_dir}' does not exist")
 
 # Constants
 CHARACTER_LIMIT = 2000
