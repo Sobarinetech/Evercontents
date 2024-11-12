@@ -3,5 +3,4 @@ Librosa
 SoundFile
 NumPy
 PyDub
-FFmpeg 
 pyaudio
