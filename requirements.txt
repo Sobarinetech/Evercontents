@@ -6,3 +6,4 @@ pillow
 emoji 
 google-generativeai
 frontend
+librosa
