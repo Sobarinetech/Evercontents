@@ -13,10 +13,6 @@ import textwrap
 # Ensure the static directory exists
 if not os.path.exists('static'):
     os.makedirs('static')
-import os
-static_dir = os.path.join(os.path.dirname(__file__), 'static')
-if not os.path.exists(static_dir):
-    raise RuntimeError(f"Directory '{static_dir}' does not exist")
 
 # Constants
 CHARACTER_LIMIT = 2000
@@ -39,7 +35,7 @@ def create_audio_from_text(text, lang='en'):
     tts.save(audio_path)
     return audio_path
 
-def create_custom_text_image(text, size=(640, 480), font_size=24):
+def create_custom_text_image(text, size=(640, 480)):
     """Create an image with custom text."""
     image = Image.new("RGB", size, (255, 255, 255))
     draw = ImageDraw.Draw(image)
@@ -59,94 +55,13 @@ def create_video_with_transitions(thumbnails, audio_path, durations, text_overla
 
         if text_overlays and idx < len(text_overlays):
             text_image = create_custom_text_image(text_overlays[idx], size=image.size)
-            text_image_path = "temp_text_image.png"
-            text_image.save(text_image_path)
-            text_clip = ImageClip(text_image_path).set_duration(duration).set_position('bottom')
+            text_clip = ImageClip(text_image).set_duration(duration).set_position('bottom')
             clips.append(text_clip)
 
         clips.append(image)
 
     video = concatenate_videoclips(clips, method="compose").set_audio(audio_clip)
     return video
-
-def add_background_effects(video, background_path):
-    """Add a background image to the video."""
-    background = ImageClip(background_path).set_duration(video.duration)
-    return CompositeVideoClip([background, video])
-
-def create_image_collage(images, size=(1280, 720)):
-    """Create a collage from a list of images."""
-    collage = Image.new("RGB", size, (255, 255, 255))
-    for idx, img in enumerate(images):
-        image = Image.open(img).resize((200, 200))
-        x_offset = (idx % 5) * 200
-        y_offset = (idx // 5) * 200
-        collage.paste(image, (x_offset, y_offset))
-    return collage
-
-def mix_audio_tracks(audio_paths):
-    """Mix multiple audio tracks."""
-    audio_clips = [AudioFileClip(path) for path in audio_paths]
-    final_audio = concatenate_audioclips(audio_clips)
-    return final_audio
-
-def add_dynamic_speed(video, speed_segments):
-    """Apply different speeds to different segments."""
-    clips = []
-    for start, end, speed in speed_segments:
-        subclip = video.subclip(start, end).fx(speedx, speed)
-        clips.append(subclip)
-    return concatenate_videoclips(clips)
-
-def apply_filter(image, filter_type):
-    """Apply a filter to an image."""
-    if filter_type == "Sepia":
-        sepia_image = image.convert("RGB")
-        width, height = sepia_image.size
-        pixels = sepia_image.load()
-        for py in range(height):
-            for px in range(width):
-                r, g, b = sepia_image.getpixel((px, py))
-                tr = int(0.393 * r + 0.769 * g + 0.189 * b)
-                tg = int(0.349 * r + 0.686 * g + 0.168 * b)
-                tb = int(0.272 * r + 0.534 * g + 0.131 * b)
-                pixels[px, py] = (min(tr, 255), min(tg, 255), min(tb, 255))
-        return sepia_image
-    elif filter_type == "Blur":
-        return image.filter(ImageFilter.GaussianBlur(radius=5))
-    return image
-
-def convert_text_to_emojis(text):
-    """Convert text to emojis."""
-    return emoji.emojize(text, use_aliases=True)
-
-def share_video_on_socials(video_path):
-    """Provide links to share the video."""
-    st.write("Share your video:")
-    st.write(f"[Twitter](https://twitter.com/intent/tweet?url={video_path})")
-    st.write(f"[Facebook](https://www.facebook.com/sharer/sharer.php?u={video_path})")
-
-def overlay_random_shapes(image):
-    """Overlay random shapes on the given image."""
-    draw = ImageDraw.Draw(image)
-    width, height = image.size
-
-    # Define number of shapes to overlay
-    num_shapes = random.randint(1, 5)
-
-    for _ in range(num_shapes):
-        shape_type = random.choice(['circle', 'rectangle'])
-        x1 = random.randint(0, width)
-        y1 = random.randint(0, height)
-        x2 = random.randint(x1, width)
-        y2 = random.randint(y1, height)
-
-        if shape_type == 'circle':
-            draw.ellipse([x1, y1, x2, y2], fill=(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255), 128))
-        elif shape_type == 'rectangle':
-            draw.rectangle([x1, y1, x2, y2], fill=(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255), 128))
-
-    return image
 
 # Streamlit UI
 st.set_page_config(page_title="🎬 Create Youtube Videos Effortlessly", layout="wide")
@@ -158,9 +73,6 @@ st.header("Upload Your Content")
 pdf_file = st.file_uploader("Upload your PDF 📄 (max 2000 characters)", type="pdf")
 thumbnails = st.file_uploader("Upload images 🖼️", type=["png", "jpg", "jpeg"], accept_multiple_files=True)
 background_music = st.file_uploader("Upload background music 🎶 (optional)", type=["mp3", "wav"], accept_multiple_files=True)
-background_image = st.file_uploader("Upload a background image 🖼️ (optional)", type=["png", "jpg", "jpeg"])
-watermark_image = st.file_uploader("Upload a watermark image (optional)", type=["png", "jpg", "jpeg"])
-sound_effects = st.file_uploader("Upload sound effects (optional)", type=["mp3", "wav"], accept_multiple_files=True)
 
 # Text input with character limit
 text_input = st.text_area("Paste your content (max 2000 characters)", max_chars=CHARACTER_LIMIT)
@@ -169,13 +81,10 @@ st.write(f"Characters used: {len(text_input)}")
 # Video customization options
 st.header("Customize Your Video")
 text_overlays = st.text_area("Enter custom text for overlays (one per thumbnail)").splitlines()
-apply_shapes = st.checkbox("Overlay random shapes on images")
-apply_glitch = st.checkbox("Apply glitch effect on video")
-filter_option = st.selectbox("Select an image filter for thumbnails:", ["None", "Sepia", "Blur"])
 language_option = st.selectbox("Select TTS language:", ['en', 'es', 'fr', 'de', 'it'])
 
 # Generative AI prompt
-prompt = st.text_input("Enter a prompt for AI to generate content:", "Write a compelling script for a youtube video about the best free TTS")
+prompt = st.text_input("Enter a prompt for AI to generate content:", "Write a compelling script for a YouTube video about the best free TTS")
 
 # Configure Google Generative AI API
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
@@ -195,43 +104,14 @@ if st.button("Generate AI Response"):
     except Exception as e:
         st.error(f"Error: {e}")
 
-# Image collage option
-if st.checkbox("Create an image collage"):
-    collage = create_image_collage(thumbnails)
-    collage_path = "collage.png"
-    collage.save(collage_path)
-    st.image(collage_path, caption='Generated Collage', use_column_width=True)
-
-# Dynamic speed control
-dynamic_speed = st.checkbox("Add dynamic speed to video segments")
-speed_segments = []
-if dynamic_speed:
-    segment_count = st.number_input("How many speed segments?", min_value=1, max_value=5, value=1)
-    for i in range(segment_count):
-        start = st.number_input(f"Start time of segment {i+1} (in seconds)", value=0)
-        end = st.number_input(f"End time of segment {i+1} (in seconds)", value=5)
-        speed = st.number_input(f"Speed for segment {i+1} (1 = normal, >1 = faster, <1 = slower)", value=1.0)
-        speed_segments.append((start, end, speed))
-
 # Generate content
 if st.button("Generate Video"):
     if pdf_file is not None:
         text = pdf_to_text(pdf_file)
         audio_path = create_audio_from_text(text, lang=language_option)
         video = create_video_with_transitions(thumbnails, audio_path, [5] * len(thumbnails), text_overlays)
-        video = add_dynamic_speed(video, speed_segments)
 
-        if apply_shapes:
-            video = video.fx(fadein, 1).fx(fadeout, 1)
-        if background_image is not None:
-            video = add_background_effects(video, background_image)
-        
-        if watermark_image is not None:
-            video = video.add_watermark(watermark_image)
-        
         # Save the video
         video.write_videofile("output_video.mp4", codec='libx264')
         st.video("output_video.mp4")
         st.success("Video created successfully!")
-
-        share_video_on_socials("output_video.mp4")
