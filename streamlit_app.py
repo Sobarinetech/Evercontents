@@ -3,11 +3,12 @@ import random
 import os
 from moviepy.editor import *
 from moviepy.video.fx.all import fadein, fadeout, speedx
-import fitz # PyMuPDF
+import fitz  # PyMuPDF
 from gtts import gTTS
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import emoji
 import google.generativeai as genai
+import textwrap
 
 # Constants
 CHARACTER_LIMIT = 2000
@@ -194,35 +195,45 @@ if st.checkbox("Create an image collage"):
     st.image(collage_path, caption='Generated Collage', use_column_width=True)
 
 # Dynamic speed control
-dynamic_speed = st.checkbox("Add dynamic speed to video segments")
+dynamic_speed = st.checkbox("Apply dynamic speed to segments")
+speed_segments = []
 if dynamic_speed:
-    speed_segments = [
-        (0, 10, 1.0), 
-        (10, 20, 1.5), 
-        (20, 30, 2.0)
-    ]
+    start = st.number_input("Enter start time (seconds)", min_value=0, max_value=10)
+    end = st.number_input("Enter end time (seconds)", min_value=0, max_value=10)
+    speed = st.number_input("Enter speed factor", min_value=1.0, max_value=2.0)
+    speed_segments.append((start, end, speed))
 
-# Generate the video
-if st.button("Generate Video"):
+# Final video creation
+if st.button("Create Your Video"):
     if pdf_file:
-        text_content = pdf_to_text(pdf_file)
-        audio_path = create_audio_from_text(text_content, lang=language_option)
+        # Extract text from PDF and generate audio
+        text = pdf_to_text(pdf_file)
+        audio_path = create_audio_from_text(text, lang=language_option)
+
+        # Generate video
         video = create_video_with_transitions(thumbnails, audio_path, [5] * len(thumbnails), text_overlays)
 
-        # Apply background effects and filters
+        # Add background effect if available
         if background_image:
             video = add_background_effects(video, background_image)
 
-        if apply_shapes:
-            video = video.fx(lambda clip: overlay_random_shapes(clip))
-
+        # Apply speed and filter effects if selected
+        if dynamic_speed:
+            video = add_dynamic_speed(video, speed_segments)
         if filter_option != "None":
-            video = video.fx(lambda clip: apply_filter(clip, filter_option))
+            video = video.fx(apply_filter, filter_option)
 
-        # Display the final video
-        st.video(video)
+        # Apply watermark if uploaded
+        if watermark_image:
+            watermark = ImageClip(watermark_image).set_duration(video.duration).set_position(('right', 'bottom'))
+            video = CompositeVideoClip([video, watermark])
 
-        # Share the video on social media
-        share_video_on_socials(video)
-    else:
-        st.error("Please upload a PDF file before generating the video.")
+        # Save video
+        final_video_path = "output_video.mp4"
+        video.write_videofile(final_video_path)
+
+        # Provide shareable video link
+        st.video(final_video_path)
+        share_video_on_socials(final_video_path)
+
+        st.success("Your video has been successfully created! 🎉")
