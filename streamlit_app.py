@@ -9,6 +9,10 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import emoji
 import google.generativeai as genai
 
+if not os.path.exists('static'):
+    os.makedirs('static')
+
+
 # Constants
 CHARACTER_LIMIT = 2000
 
