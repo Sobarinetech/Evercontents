@@ -1,1 +1,6 @@
 streamlit
+moviepy 
+fitz gtts 
+pillow 
+emoji 
+google-generativeai
