@@ -4,6 +4,6 @@ fitz
 gtts 
 pillow 
 emoji 
-google-generativeai
+pydub
 frontend
 librosa
