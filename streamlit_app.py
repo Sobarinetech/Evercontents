@@ -5,6 +5,7 @@ import soundfile as sf
 import numpy as np
 import tempfile
 import os
+from pydub import AudioSegment
 
 # Function to calculate similarity between two audio files
 def calculate_similarity(original_file_path, cloned_file_path):
@@ -35,6 +36,15 @@ def clone_audio(input_file_path):
 
         return output_file_path
 
+# Function to convert audio format
+def convert_audio(input_file):
+    with tempfile.NamedTemporaryFile(suffix='.mp3') as tmp_file:
+        tmp_file.write(input_file.getbuffer())
+        audio = AudioSegment.from_mp3(tmp_file.name)
+        converted_file_path = "converted_audio.wav"
+        audio.export(converted_file_path, format="wav")
+        return converted_file_path
+
 # Streamlit application
 st.title("Audio Cloner")
 
@@ -43,11 +53,20 @@ input_file = st.file_uploader("Upload Audio File", type=['wav', 'mp3', 'ogg'])
 
 if input_file:
     try:
+        # Convert uploaded audio to WAV format
+        if input_file.type == 'audio/mpeg':
+            converted_file_path = convert_audio(input_file)
+            input_file_path = converted_file_path
+        else:
+            with tempfile.NamedTemporaryFile(suffix='.wav') as tmp_file:
+                tmp_file.write(input_file.getbuffer())
+                input_file_path = tmp_file.name
+
         # Clone audio
-        cloned_file_path = clone_audio(input_file)
+        cloned_file_path = clone_audio(input_file_path)
 
         # Calculate similarity
-        similarity = calculate_similarity(input_file, cloned_file_path)
+        similarity = calculate_similarity(input_file_path, cloned_file_path)
 
         # Display similarity
         st.write(f"Similarity: {similarity:.2f}%")
