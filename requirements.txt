@@ -4,3 +4,4 @@ SoundFile
 NumPy
 PyDub
 moviepy
+PyPDF2
