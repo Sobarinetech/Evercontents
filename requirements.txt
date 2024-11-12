@@ -5,3 +5,4 @@ NumPy
 PyDub
 moviepy
 PyPDF2
+gtts
