@@ -57,8 +57,8 @@ if st.button("Generate Content"):
         # Configure the model
         model = genai.GenerativeModel('gemini-1.5-flash')
         
-        # Generate response based on prompt, tone, and language
-        response = model.generate_content(prompt, tone=tone, language=language)
+        # Generate response based on prompt (removed tone and language for compatibility)
+        response = model.generate_content(prompt)
         
         # Base response
         st.write("Generated Content:")
