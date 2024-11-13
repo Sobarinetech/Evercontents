@@ -1,8 +1,2 @@
 Streamlit
-Librosa
-SoundFile
-NumPy
-PyDub
-moviepy
-PyPDF2
-gtts
+google.generativeai
