@@ -1,9 +1,7 @@
 import streamlit as st
 import google.generativeai as genai
 import random
-from datetime import datetime, timedelta
-import requests
-import pandas as pd
+from datetime import datetime
 import os
 
 # Ensure to configure the API key securely
@@ -34,13 +32,10 @@ include_summary = st.checkbox("Summarize Content")
 generate_hashtags = st.checkbox("Generate Hashtags")
 create_visual = st.checkbox("Generate Visual Representation")
 content_rewrite = st.checkbox("Rewrite Content")
-sentiment_analysis = st.checkbox("Perform Sentiment Analysis")
-tone_detection = st.checkbox("Detect Tone")
 generate_related_questions = st.checkbox("Generate Related Questions")
 suggest_headlines = st.checkbox("Suggest Catchy Headlines")
 generate_statistics = st.checkbox("Generate Random Statistics")
 create_short_form = st.checkbox("Create Short-form Content (e.g., 50 words)")
-create_audio_version = st.checkbox("Generate Audio Version")
 generate_call_to_action = st.checkbox("Generate Call-to-Action")
 create_presentation_outline = st.checkbox("Generate Presentation Outline")
 repurpose_for_different_platforms = st.checkbox("Repurpose for Multiple Platforms")
@@ -57,7 +52,7 @@ if st.button("Generate Content"):
         # Configure the model
         model = genai.GenerativeModel('gemini-1.5-flash')
         
-        # Generate response based on prompt (removed tone and language for compatibility)
+        # Generate response based on prompt
         response = model.generate_content(prompt)
         
         # Base response
@@ -67,9 +62,9 @@ if st.button("Generate Content"):
         
         # Advanced Feature: Summarize Content
         if include_summary:
-            summary = model.summarize_content(generated_text)
+            summary = model.generate_content(f"Summarize this: {generated_text}")
             st.write("### Summary:")
-            st.write(summary)
+            st.write(summary.text)
 
         # Advanced Feature: Generate Hashtags
         if generate_hashtags:
@@ -77,42 +72,28 @@ if st.button("Generate Content"):
             st.write("### Suggested Hashtags:")
             st.write(" ".join(hashtags))
 
-        # Advanced Feature: Create Visual Representation
+        # Advanced Feature: Create Visual Representation (placeholder)
         if create_visual:
             st.write("### Suggested Visual Representation:")
             st.image("https://placekitten.com/400/200", caption="Example Visual (Placeholder)")
 
         # Advanced Feature: Rewrite Content
         if content_rewrite:
-            rewrite = model.rewrite_content(generated_text)
+            rewrite = model.generate_content(f"Rewrite this content: {generated_text}")
             st.write("### Rewritten Content:")
-            st.write(rewrite)
-        
-        # Advanced Feature: Sentiment Analysis
-        if sentiment_analysis:
-            sentiment = model.analyze_sentiment(generated_text)
-            st.write("### Sentiment Analysis:")
-            st.write(sentiment)
-        
-        # Advanced Feature: Tone Detection
-        if tone_detection:
-            detected_tone = model.detect_tone(generated_text)
-            st.write("### Detected Tone:")
-            st.write(detected_tone)
+            st.write(rewrite.text)
         
         # Advanced Feature: Generate Related Questions
         if generate_related_questions:
-            related_questions = model.generate_related_questions(prompt)
+            related_questions = model.generate_content(f"Generate questions related to: {prompt}")
             st.write("### Related Questions:")
-            for q in related_questions:
-                st.write(f"- {q}")
+            st.write(related_questions.text)
         
         # Advanced Feature: Suggest Catchy Headlines
         if suggest_headlines:
-            headlines = model.generate_headlines(prompt)
+            headlines = model.generate_content(f"Suggest catchy headlines for: {prompt}")
             st.write("### Suggested Headlines:")
-            for headline in headlines:
-                st.write(f"- {headline}")
+            st.write(headlines.text)
 
         # Advanced Feature: Generate Random Statistics
         if generate_statistics:
@@ -126,11 +107,6 @@ if st.button("Generate Content"):
             st.write("### Short-form Content (50 words):")
             st.write(short_form_content)
         
-        # Advanced Feature: Generate Audio Version
-        if create_audio_version:
-            st.write("### Generated Audio Version:")
-            st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3")
-        
         # Advanced Feature: Generate Call-to-Action
         if generate_call_to_action:
             cta = f"Explore more about {prompt} today!"
@@ -139,10 +115,9 @@ if st.button("Generate Content"):
         
         # Advanced Feature: Presentation Outline
         if create_presentation_outline:
-            outline = model.generate_presentation_outline(generated_text)
+            outline = model.generate_content(f"Generate an outline for a presentation on: {prompt}")
             st.write("### Presentation Outline:")
-            for point in outline:
-                st.write(f"- {point}")
+            st.write(outline.text)
 
         # Advanced Feature: Repurpose for Different Platforms
         if repurpose_for_different_platforms:
@@ -152,28 +127,27 @@ if st.button("Generate Content"):
 
         # Advanced Feature: Marketing Email
         if generate_marketing_email:
-            email_content = model.generate_marketing_email(generated_text)
+            email_content = model.generate_content(f"Generate a marketing email for: {generated_text}")
             st.write("### Marketing Email:")
-            st.write(email_content)
+            st.write(email_content.text)
 
         # Advanced Feature: Video Script
         if generate_video_script:
-            video_script = model.generate_video_script(generated_text)
+            video_script = model.generate_content(f"Generate a video script for: {generated_text}")
             st.write("### Video Script:")
-            st.write(video_script)
+            st.write(video_script.text)
 
         # Advanced Feature: Infographic Content
         if create_infographic_content:
-            infographic_content = model.generate_infographic_content(generated_text)
+            infographic_content = model.generate_content(f"Generate content for an infographic on: {generated_text}")
             st.write("### Infographic Content:")
-            st.write(infographic_content)
+            st.write(infographic_content.text)
         
         # Advanced Feature: Quiz Questions
         if generate_quiz_questions:
-            quiz_questions = model.generate_quiz_questions(prompt)
+            quiz_questions = model.generate_content(f"Generate quiz questions for: {prompt}")
             st.write("### Quiz Questions:")
-            for question in quiz_questions:
-                st.write(f"- {question}")
+            st.write(quiz_questions.text)
 
         # Advanced Feature: Engagement Metrics
         if track_engagement_metrics:
