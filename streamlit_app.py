@@ -1,9 +1,12 @@
 import streamlit as st
 import google.generativeai as genai
-from datetime import datetime, timedelta
 import random
+from datetime import datetime, timedelta
+import requests
+import pandas as pd
+import os
 
-# Configure the API key securely
+# Ensure to configure the API key securely
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 
 # Streamlit App UI
@@ -182,16 +185,20 @@ if st.button("Generate Content"):
             audience_segments = ["Young Professionals", "Tech Enthusiasts", "Freelancers"]
             for segment in audience_segments:
                 st.write(f"### Content for {segment}:")
-                st.write(f"{generated_text[:100]} tailored for {segment}.")
-        
-        # Download Option
+                st.write(f"Personalized content tailored for {segment}.")
+
+        # File download option
         if download_as_file:
-            st.download_button(label="Download Content as Text File", data=generated_text, file_name="generated_content.txt")
-        
-        # Post Scheduling Option
+            file_name = "generated_content.txt"
+            with open(file_name, "w") as f:
+                f.write(generated_text)
+            st.download_button(label="Download Content", data=file_name)
+
+        # Scheduling content
         if schedule_post:
-            schedule_time = st.date_input("Select a date for scheduling:", datetime.now() + timedelta(days=1))
-            st.write(f"Your post is scheduled for {schedule_time.strftime('%Y-%m-%d')}")
+            post_time = st.time_input("Select time to post:", datetime.now().time())
+            st.write(f"Scheduled post at {post_time} on {datetime.now().date()}")
 
     except Exception as e:
         st.error(f"Error: {e}")
+
